@@ -1,4 +1,4 @@
-module ValenceSdk
+module Valence
   class TimestampParser
     def try_parse_timestamp(timestamp_message)
       regex = /Timestamp out of range\s*(\d+)/m

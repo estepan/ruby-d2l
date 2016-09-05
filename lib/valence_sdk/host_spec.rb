@@ -1,4 +1,4 @@
-module ValenceSdk
+module Valence
   class HostSpec
     attr_accessor :scheme, :host, :port
 
@@ -14,6 +14,8 @@ module ValenceSdk
         URI::HTTP.build(host: host, port: port)
       when :https
         URI::HTTPS.build(host: host, port: port)
+      else
+        fail 'Supports only HTTP and HTTPS scheme'
       end
     end
   end

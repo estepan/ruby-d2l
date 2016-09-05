@@ -1,4 +1,4 @@
-module ValenceSdk
+module Valence
   module D2l
     class UserContext
       APP_ID_PARAMETER = 'x_a'.freeze
@@ -8,32 +8,36 @@ module ValenceSdk
       TIMESTAMP_PARAMETER = 'x_t'.freeze
       REQUIRED_PARAMETERS = %i(app_id timestamp_provider app_key user_id user_key api_host)
 
+      attr_accessor :server_skew_mills
+
       # Constructs a D2LUserContext with the parameters provided
       def initialize(params={})
         fail 'Inconsistent parameters' unless params.keys.all? { |key| (REQUIRED_PARAMETERS).include?(key) }
 
         params.each { |key, value| instance_variable_set("@#{key}", value) }
+
+        @server_skew_mills = 0
       end
 
-      # @return [ValenceSdk::RequestResult]
-      # @param [ValenceSdk::D2l::WebException] d2l_exception
+      # @return [Valence::RequestResult]
+      # @param [Valence::D2l::WebException] d2l_exception
       def interpret_result(d2l_exception)
         case
         when d2l_exception.request_result.forbidden?
-          interpret_status_code_forbidden(d2l_exception.response_body)
+          interpret_forbidden(d2l_exception.response_body)
         when d2l_exception.request_result.not_found?
-          ValenceSdk::RequestResult::NOT_FOUND
+          Valence::RequestResult::NOT_FOUND
         when d2l_exception.request_result.internal_server_error?
-          ValenceSdk::RequestResult::INTERNAL_ERROR
+          Valence::RequestResult::INTERNAL_ERROR
         when d2l_exception.request_result.bad_request?
-          ValenceSdk::RequestResult::BAD_REQUEST
+          Valence::RequestResult::BAD_REQUEST
         else
-          ValenceSdk::RequestResult::UNKNOWN_STATUS
+          Valence::RequestResult::UNKNOWN_STATUS
         end
       end
 
-      def save_user_context_properties
-        ValenceSdk::UserContextProperties.new(
+      def user_context_properties
+        Valence::UserContextProperties.new(
           user_id: @user_id,
           user_key: @user_key,
           scheme: @api_host.scheme,
@@ -42,10 +46,10 @@ module ValenceSdk
         )
       end
 
-      def create_authenticated_uri(uri, http_method)
-        uri = create_api_uri(uri) if uri.is_a?(String)
+      def authenticated_uri(uri, http_method)
+        uri = api_uri(uri) if uri.is_a?(String)
 
-        tokens = create_authenticated_tokens(uri, http_method)
+        tokens = authenticated_tokens(uri, http_method)
         query_tokens = tokens.map { |key, value| "#{key}=#{value}" }
         query_string = query_tokens.join('&')
 
@@ -60,16 +64,19 @@ module ValenceSdk
 
       # Creates authentication parameters hash to be used in uri
       # @return [Hash]
-      def create_authenticated_tokens(uri, http_method)
+      # @param [URI::Generic] uri
+      # @param [String] http_method
+      def authenticated_tokens(uri, http_method)
         adjusted_timestamp_seconds = adjusted_timestamp_in_seconds
-        signature = format_signature(uri.to_s, http_method, adjusted_timestamp_seconds)
+        signature = format_signature(uri.path, http_method, adjusted_timestamp_seconds)
+        tokens = { APP_ID_PARAMETER => @app_id }
 
         unless @user_id.nil?
           tokens[USER_ID_PARAMETER] = @user_id
           tokens[SIGNATURE_BY_USER_KEY_PARAMETER] = Signer.encode64(@user_key, signature)
         end
 
-        tokens[SIGNATURE_BY_APP_KEY_PARAMETER] = Signer.encode64(@app_ley, signature)
+        tokens[SIGNATURE_BY_APP_KEY_PARAMETER] = Signer.encode64(@app_key, signature)
         tokens[TIMESTAMP_PARAMETER] = adjusted_timestamp_seconds.to_s
 
         tokens
@@ -78,22 +85,23 @@ module ValenceSdk
       private
 
       # @param [String] response_body
-      def interpret_status_code_forbidden(response_body)
+      # @return [String]
+      def interpret_forbidden(response_body)
         if timestamp_was_changed?(response_body)
-          return ValenceSdk::RequestResult::INVALID_TIMESTAMP
+          return Valence::RequestResult::INVALID_TIMESTAMP
         end
 
         if response_body.dup.downcase == 'invalid token'
-          return ValenceSdk::RequestResult::INVALID_SIGNATURE
+          return Valence::RequestResult::INVALID_SIGNATURE
         end
 
-        ValenceSdk::RequestResult::NO_PERMISSON
+        Valence::RequestResult::NO_PERMISSON
       end
 
       # @param [String] response_body
       # @return [Boolean] Whether the timestamp was changed or not
       def timestamp_was_changed?(response_body)
-        parser = ValenceSdk::TimestampParser.new
+        parser = Valence::TimestampParser.new
         status, server_timestamp_seconds = parser.try_parse_timestamp(response_body)
 
         if status == :ok
@@ -105,7 +113,9 @@ module ValenceSdk
         false
       end
 
-      def create_api_uri(path)
+      # @param [String] path
+      # @return [URI::Generic]
+      def api_uri(path)
         uri = @api_host.to_uri
 
         if !path.include?('?')
@@ -136,7 +146,8 @@ module ValenceSdk
         # Note: We unecape the path to handle the (rare) case that the path needs to be urlencoded. The LMS checks
         # the signature of the decoded path so we must sign it appropriately.
 
-        "#{http_method.upcase}&#{CGI.unescape(path).downcase}&#{timestamp_seconds}"
+        puts result = "#{http_method.upcase}&#{CGI.unescape(path).downcase}&#{timestamp_seconds}"
+        result
       end
     end
   end

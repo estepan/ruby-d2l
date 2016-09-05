@@ -1,13 +1,13 @@
 require 'openssl'
 require 'Base64'
 
-module ValenceSdk
+module Valence
   module D2l
     class Signer
-      private
-
       def self.encode64(key, data)
-        Base64.encode64(compute_hash(key, data)).strip()
+        result = Base64.encode64(compute_hash(key, data))
+
+        result.gsub('=', '').gsub('+', '-').gsub('/', '_').strip
       end
 
       def self.compute_hash(key, data)

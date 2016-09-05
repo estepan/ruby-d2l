@@ -1,3 +1,3 @@
-module ValenceSdk
+module Valence
   VERSION = "0.1.0"
 end

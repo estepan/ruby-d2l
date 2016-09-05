@@ -1,4 +1,4 @@
-module ValenceSdk
+module Valence
   class UserContextProperties
     PARAMS = [:user_id, :user_key, :scheme, :host, :port]
     attr_accessor *PARAMS

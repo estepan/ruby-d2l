@@ -1,12 +1,18 @@
-module ValenceSdk
+module Valence
   module D2l
     class AppContextFactory
+      REQUIRED_KEYS = %w{app_id app_key}
+
       def initialize(timestamp_provider = nil)
-        self.timestamp_provider = timestamp_provider || ValenceSdk::DefaultTimestampProvider.new
+        self.timestamp_provider = timestamp_provider || Valence::DefaultTimestampProvider.new
       end
 
-      def create(app_id:, app_key:)
-        return AppContext.new(app_id: app_id, app_key: app_key, timestamp_provider: timestamp_provider)
+      def create(params = {})
+        params.each { |key, value| fail "#{key.to_sym} is required" if value.nil? }
+
+        AppContext.new(app_id: params[:app_id],
+                       app_key: params[:app_key],
+                       timestamp_provider: timestamp_provider)
       end
 
       private

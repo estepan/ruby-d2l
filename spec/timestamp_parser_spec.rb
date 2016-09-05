@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe ValenceSdk::TimestampParser do
+RSpec.describe Valence::TimestampParser do
   describe '#try_parse_timestamp' do
     subject { described_class.new.try_parse_timestamp(response) }
 

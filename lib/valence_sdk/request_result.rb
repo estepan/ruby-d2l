@@ -1,4 +1,4 @@
-module ValenceSdk
+module Valence
   class RequestResult
     FORBIDDEN         = 'forbidden'.freeze
     BAD_REQUEST       = 'bad_request'.freeze
