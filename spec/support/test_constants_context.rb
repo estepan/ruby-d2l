@@ -15,7 +15,7 @@ shared_context :test_constants do
   let(:timestamp_s)         { 1234567 }
 
   let(:host_spec)           { Valence::HostSpec.new(scheme: scheme, host: host, port: port) }
-  let(:timestamp_provider)  { double current_timestamp_in_milliseconds: timestamp_ms }
+  let(:timestamp_provider)  { double timestamp_ms: timestamp_ms }
 
   let(:params) { Hash[subject.query.split('&').map { |value| value.split('=') }.compact.reject(&:empty?)] }
 
@@ -33,6 +33,4 @@ shared_context :test_constants do
   let(:anon_user_context) do
     app_context.user_context_factory.create_anonymous(host_spec)
   end
-
-
 end

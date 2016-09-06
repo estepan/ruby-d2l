@@ -9,7 +9,7 @@ module Valence
     end
 
     def to_uri
-      case scheme.to_sym
+      case scheme.downcase.to_sym
       when :http
         URI::HTTP.build(host: host, port: port)
       when :https

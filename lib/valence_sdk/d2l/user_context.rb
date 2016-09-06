@@ -8,7 +8,7 @@ module Valence
       TIMESTAMP_PARAMETER = 'x_t'.freeze
       REQUIRED_PARAMETERS = %i(app_id timestamp_provider app_key user_id user_key api_host)
 
-      attr_accessor :server_skew_mills
+      attr_accessor :server_skew_ms
 
       # Constructs a D2LUserContext with the parameters provided
       def initialize(params={})
@@ -16,7 +16,7 @@ module Valence
 
         params.each { |key, value| instance_variable_set("@#{key}", value) }
 
-        @server_skew_mills = 0
+        @server_skew_ms = 0
       end
 
       # @return [Valence::RequestResult]
@@ -91,7 +91,7 @@ module Valence
           return Valence::RequestResult::INVALID_TIMESTAMP
         end
 
-        if response_body.dup.downcase == 'invalid token'
+        if !response_body.nil? && response_body.downcase == 'invalid token'
           return Valence::RequestResult::INVALID_SIGNATURE
         end
 
@@ -102,11 +102,11 @@ module Valence
       # @return [Boolean] Whether the timestamp was changed or not
       def timestamp_was_changed?(response_body)
         parser = Valence::TimestampParser.new
-        status, server_timestamp_seconds = parser.try_parse_timestamp(response_body)
+        status, server_timestamp_s = parser.try_parse_timestamp(response_body)
 
         if status == :ok
-          client_timestamp = @timestamp_provider.current_timestamp_in_milliseconds
-          @server_skew_mills = server_timestamp_seconds * 1000 - client_timestamp
+          client_timestamp = @timestamp_provider.timestamp_ms
+          @server_skew_ms = server_timestamp_s * 1000 - client_timestamp
           return true
         end
 
@@ -126,15 +126,18 @@ module Valence
           uri.query = query
         end
 
+        uri.path.downcase!
+        uri.host.downcase!
+
         uri
       end
 
       # Returns the timestamp in milliseconds adjusting for the calculated skew
       # @return [Fixnum]
       def adjusted_timestamp_in_seconds
-        timestamp = @timestamp_provider.current_timestamp_in_milliseconds
+        timestamp = @timestamp_provider.timestamp_ms
 
-        (timestamp + @server_skew_mills) / 1000
+        (timestamp + @server_skew_ms) / 1000
       end
 
       # Formats a signature to the format required by the D2L API servers
@@ -146,8 +149,7 @@ module Valence
         # Note: We unecape the path to handle the (rare) case that the path needs to be urlencoded. The LMS checks
         # the signature of the decoded path so we must sign it appropriately.
 
-        puts result = "#{http_method.upcase}&#{CGI.unescape(path).downcase}&#{timestamp_seconds}"
-        result
+        "#{http_method.upcase}&#{CGI.unescape(path).downcase}&#{timestamp_seconds}"
       end
     end
   end
