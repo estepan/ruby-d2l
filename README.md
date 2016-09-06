@@ -1,5 +1,7 @@
 # ValenceSdk
 
+[![Code Climate](https://codeclimate.com/repos/57ce92244f47cc4f17004643/badges/a44b0c14dacca964ff04/gpa.svg)](https://codeclimate.com/repos/57ce92244f47cc4f17004643/feed)
+
 Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/valence_sdk`. To experiment with that code, run `bin/console` for an interactive prompt.
 
 TODO: Delete this and the text above, and describe your gem
